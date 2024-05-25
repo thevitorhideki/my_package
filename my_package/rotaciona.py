@@ -26,7 +26,7 @@ class RotateTo(Node, Odom):
         }
 
         # Inicialização de variáveis
-        self.kp = 0.3
+        self.kp = 0.8
         self.twist = Twist()
         self.get_goal_from_target(target)
 
@@ -57,7 +57,7 @@ class RotateTo(Node, Odom):
 
 def main(args=None):
     rclpy.init(args=args)
-    ros_node = RotateTo(np.deg2rad(90))
+    ros_node = RotateTo(np.deg2rad(0))
 
     rclpy.spin(ros_node)
 
