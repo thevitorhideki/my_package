@@ -23,8 +23,8 @@ class GoTo(Node, Odom):
             'stop': self.stop
         }
 
-        self.kp_angular = 0.5
-        self.kp_linear = 0.2
+        self.kp_angular = 0.2
+        self.kp_linear = 0.1
 
         # Inicialização de variáveis
         self.twist = Twist()

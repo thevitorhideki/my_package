@@ -24,7 +24,7 @@ class Seguidor(Node):
         self.kernel = np.ones((10, 10), np.uint8)
         self.subcomp = self.create_subscription(
             Image,
-            '/camera/image_raw',
+            'camera/image_raw',
             self.image_callback,
             QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
         )
@@ -80,7 +80,7 @@ class Seguidor(Node):
         erro = self.w - self.x
         print('Erro Angular:', erro)
 
-        self.twist.linear.x = 0.6
+        self.twist.linear.x = 0.5
         self.twist.angular.z = erro * self.kp
 
         if self.x == np.inf:

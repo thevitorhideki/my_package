@@ -3,9 +3,14 @@
 
 import cv2
 import numpy as np
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+from rclpy.qos import ReliabilityPolicy, QoSProfile
+from cv_bridge import CvBridge
 
 
-class MobileNetDetector():
+class MobileNetDetector(Node):
     """Classe para detecção de objetos com o modelo MobileNetSSD.
     """
 
@@ -14,6 +19,7 @@ class MobileNetDetector():
                  args_prototxt="/home/thevitorhideki/colcon_ws/src/my_package/my_package/config/MobileNetSSD_deploy.prototxt.txt",
                  args_model="/home/thevitorhideki/colcon_ws/src/my_package/my_package/config/MobileNetSSD_deploy.caffemodel"
                  ):
+        super().__init__('module_net')
         self.CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair",
                         "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
         self.CONFIDENCE = CONFIDENCE
@@ -24,6 +30,24 @@ class MobileNetDetector():
         self.net = self.load_mobilenet()
 
         self.draw = True
+        self.bridge = CvBridge()
+
+        self.subcomp = self.create_subscription(
+            Image,
+            'camera/image_raw',
+            self.image_callback,
+            QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
+        )
+
+    def image_callback(self, msg: np.ndarray):
+        cv_image = self.bridge.imgmsg_to_cv2(
+            msg, "bgr8")  # if CompressedImage
+
+        img, results = self.detect(cv_image)
+
+        print(results)
+        cv2.imshow("imagem", img)
+        cv2.waitKey(1)
 
     def load_mobilenet(self):
         """Carrega o modelo MobileNetSSD.
@@ -77,17 +101,14 @@ class MobileNetDetector():
         return image, results
 
 
-def main():
-    import time
-    bgr = cv2.imread("img/cow_wolf_3.png")
+def main(args=None):
+    rclpy.init(args=args)
+    ros_node = MobileNetDetector()
 
-    start = time.perf_counter()
-    MOBILE = MobileNetDetector()
-    result_mob, out = MOBILE.detect(bgr)
-    print("MobileNet: ", time.perf_counter() - start)
+    rclpy.spin(ros_node)
 
-    cv2.imshow("Result_MobileNet", result_mob)
-    cv2.waitKey(0)
+    ros_node.destroy_node()
+    rclpy.shutdown()
 
 
 if __name__ == "__main__":
