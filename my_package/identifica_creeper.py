@@ -25,11 +25,15 @@ class DetectaCreeper(Node, Aruco3d):
         self.filters = {
             "verde": {
                 "lower": np.array([40, 120, 120]),
-                "upper": np.array([60, 255, 255]),
+                "upper": np.array([80, 255, 255]),
             },
             "azul": {
-                "lower": np.array([100, 120, 120]),
-                "upper": np.array([130, 255, 255]),
+                "lower": np.array([80, 120, 120]),
+                "upper": np.array([100, 255, 255]),
+            },
+            "amarelo": {
+                "lower": np.array([10, 120, 120]),
+                "upper": np.array([50, 255, 255]),
             },
         }
 
@@ -59,7 +63,6 @@ class DetectaCreeper(Node, Aruco3d):
         if self.running:
             cv_image = self.bridge.imgmsg_to_cv2(
                 msg, "bgr8")  # Raw image
-            # cv_image = self.bridge.compressed_imgmsg_to_cv2(msg, "bgr8") # Compressed
 
             bgr, aruco = self.run(cv_image)
 

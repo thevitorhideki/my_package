@@ -19,10 +19,11 @@ class Laser:
         self.laser_msg[self.laser_msg == 0] = np.inf
         self.laser_msg = list(self.laser_msg)
 
-        self.front = self.laser_msg[: self.opening] + self.laser_msg[-self.opening :]
-        self.left = self.laser_msg[90 - self.opening : 90 + self.opening]
-        self.right = self.laser_msg[275 - self.opening : 275 + self.opening]
-        self.back = self.laser_msg[180 - self.opening : 180 + self.opening]
+        self.front = self.laser_msg[: self.opening] + \
+            self.laser_msg[-self.opening:]
+        self.left = self.laser_msg[90 - self.opening: 90 + self.opening]
+        self.right = self.laser_msg[275 - self.opening: 275 + self.opening]
+        self.back = self.laser_msg[180 - self.opening: 180 + self.opening]
 
         self.custom_laser()
 

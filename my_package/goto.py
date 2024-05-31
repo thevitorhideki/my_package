@@ -1,20 +1,25 @@
-import time
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
+from rclpy.qos import ReliabilityPolicy, QoSProfile
+from geometry_msgs.msg import Twist, Point
 # Adicione aqui os imports necessários
-from my_package.odom import Odom
 import numpy as np
+import time
+from my_package.odom import Odom
 
 
-class GoTo(Node, Odom):
-
-    def __init__(self, point):
-        Node.__init__(self, 'goto_node')
-        Odom.__init__(self)
-
+class GoTo(Node, Odom):  # Mude o nome da classe
+    def __init__(self, point: Point = Point()):
+        Node.__init__(self, 'quadrado_node')  # Mude o nome do nó
+        Odom.__init__(self)  # Mude o nome do nó
         time.sleep(1)
-        self.timer = self.create_timer(0.2, self.control)
+
+        # Inicialização de variáveis
+        self.twist = Twist()
+        self.threshold = np.pi/180
+        self.kp_linear = 0.2
+        self.kp_angular = 0.8
+        self.point = point
 
         self.robot_state = 'center'
         self.state_machine = {
@@ -23,41 +28,40 @@ class GoTo(Node, Odom):
             'stop': self.stop
         }
 
-        self.kp_angular = 0.8
-        self.kp_linear = 0.2
-
-        # Inicialização de variáveis
-        self.twist = Twist()
-        self.point = point
+        self.timer = self.create_timer(0.1, self.control)
 
         # Publishers
         self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel', 10)
 
     def get_angular_error(self):
-        x, y = self.point
-        dx = x - self.x
-        dy = y - self.y
-        theta = np.arctan2(dy, dx)
-        goal_yaw = (theta + np.pi) % (2 * np.pi) - np.pi
-        erro = goal_yaw - self.yaw
-        erro = np.arctan2(np.sin(erro), np.cos(erro))
-        dist = np.sqrt(dx**2 + dy**2)
+        if self.x == np.inf:
+            self.erro = np.inf
+            self.twist.angular.z = 0.
+            return
 
-        return erro, dist
+        x = self.point.x - self.x
+        y = self.point.y - self.y
+        theta = np.arctan2(y, x)
+
+        self.distance = np.sqrt(x**2 + y**2)
+        erro = theta - self.yaw
+        self.erro = np.arctan2(np.sin(erro), np.cos(erro))
+
+        print('Erro: ', self.erro)
+        self.twist.angular.z = self.erro * self.kp_angular
 
     def center(self):
-        erro, _ = self.get_angular_error()
-        self.twist.angular.z = self.kp_angular * erro
+        self.get_angular_error()
 
-        if abs(erro) < np.deg2rad(2):
+        if abs(self.erro) < np.deg2rad(3):
             self.robot_state = 'goto'
 
     def goto(self):
-        erro, dist = self.get_angular_error()
-        self.twist.angular.z = self.kp_angular * erro
-        self.twist.linear.x = self.kp_linear * dist
+        self.get_angular_error()
 
-        if dist < 0.1:
+        if self.distance > 0.01:
+            self.twist.linear.x = self.distance * self.kp_linear
+        else:
             self.robot_state = 'stop'
 
     def stop(self):
@@ -66,14 +70,14 @@ class GoTo(Node, Odom):
     def control(self):
         self.twist = Twist()
         print(f'Estado Atual: {self.robot_state}')
-        print(f'X: {self.x}| Y:{self.y}')
         self.state_machine[self.robot_state]()
+
         self.cmd_vel_pub.publish(self.twist)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    ros_node = GoTo((0, 0))
+    ros_node = GoTo(Point(x=-3., y=0., z=0.))
 
     rclpy.spin(ros_node)
 

@@ -1,7 +1,6 @@
 import time
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import ReliabilityPolicy, QoSProfile
 from geometry_msgs.msg import Twist
 from my_package.odom import Odom
 
@@ -11,39 +10,43 @@ import numpy as np
 
 class RotateTo(Node, Odom):
 
-    def __init__(self, target):
-        Node.__init__(self, 'rotate_node')
+    def __init__(self, ang, deg=False):
+        Node.__init__(self, 'rotate2_node')
         Odom.__init__(self)
-
         time.sleep(1)
-
         self.timer = self.create_timer(0.2, self.control)
 
         self.robot_state = 'gira'
         self.state_machine = {
             'gira': self.gira,
-            'para': self.para
+            'para': self.para,
         }
 
+        self.get_goal_from_target(ang, deg)
+
+        self.threshold = 5
+        self.kp = .5
+
         # Inicialização de variáveis
-        self.kp = 0.8
         self.twist = Twist()
-        self.get_goal_from_target(target)
 
         # Publishers
         self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel', 10)
 
-    def get_goal_from_target(self, target):
-        self.goal_yaw = (target + np.pi) % (2 * np.pi) - np.pi
+    def get_goal_from_target(self, ang, deg):
+        if deg:
+            ang = np.deg2rad(ang)
+        self.goal_yaw = (ang + np.pi) % (2 * np.pi) - np.pi
 
     def gira(self):
         erro = self.goal_yaw - self.yaw
         erro = np.arctan2(np.sin(erro), np.cos(erro))
 
-        self.twist.angular.z = erro * self.kp
+        self.twist.angular.z = self.kp * erro
 
-        if abs(erro) <= np.deg2rad(10):
+        if abs(erro) < np.deg2rad(1):
             self.robot_state = 'para'
+            self.twist = Twist()
 
     def para(self):
         self.twist = Twist()

@@ -1,32 +1,24 @@
-import rclpy
-import numpy as np
-from nav_msgs.msg import Odometry
 from rclpy.qos import ReliabilityPolicy, QoSProfile
+from nav_msgs.msg import Odometry
+import numpy as np
 
 
-class Odom:
+class Odom():  # Mude o nome da classe
+
     def __init__(self):
-        self.create_subscription(
+        # Inicialização de variáveis
+        self.x = np.inf
+        self.y = np.inf
+        self.yaw = 0.0
+
+        # Subscribers
+        self.odom_sub = self.create_subscription(
             Odometry,
-            "/odom",
+            '/odom',
             self.odom_callback,
-            QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE),
-        )
+            QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE))
 
-    def odom_callback(self, data: Odometry):
-        self.x = data.pose.pose.position.x
-        self.y = data.pose.pose.position.y
-        self.yaw = self.euler_from_quaternion(
-            [
-                data.pose.pose.orientation.x,
-                data.pose.pose.orientation.y,
-                data.pose.pose.orientation.w,
-                data.pose.pose.position.z,
-            ]
-        )[2]
-        self.yaw_2pi = (self.yaw + 2 * np.pi) % 2 * np.pi
-
-    def euler_from_quaternion(self, quaternion):
+    def euler_from_quaternion(self, quaternion: list):
         """
         Converts quaternion (w in last place) to euler roll, pitch, yaw
         quaternion = [x, y, z, w]
@@ -50,16 +42,17 @@ class Odom:
 
         return roll, pitch, yaw
 
+    def odom_callback(self, data: Odometry):
+        self.x = data.pose.pose.position.x
+        self.y = data.pose.pose.position.y
 
-def main(args=None):
-    rclpy.init(args=args)
-    subscriber = Odom()
+        quaternion = [
+            data.pose.pose.orientation.x,
+            data.pose.pose.orientation.y,
+            data.pose.pose.orientation.z,
+            data.pose.pose.orientation.w]
 
-    rclpy.spin(subscriber)
+        self.roll, self.pitch, self.yaw = self.euler_from_quaternion(
+            quaternion)
 
-    subscriber.destroy_node()
-    rclpy.shutdown()
-
-
-if __name__ == "__main__":
-    main()
+        self.yaw_2pi = (self.yaw + 2 * np.pi) % (2 * np.pi)
