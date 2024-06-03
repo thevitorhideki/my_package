@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import cv2
+import os
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -14,10 +15,12 @@ class MobileNetDetector(Node):
     """Classe para detecção de objetos com o modelo MobileNetSSD.
     """
 
+    current_work_directory = os.path.dirname(os.path.abspath(__file__))
+
     def __init__(self,
                  CONFIDENCE=0.7,
-                 args_prototxt="/home/thevitorhideki/colcon_ws/src/my_package/my_package/config/MobileNetSSD_deploy.prototxt.txt",
-                 args_model="/home/thevitorhideki/colcon_ws/src/my_package/my_package/config/MobileNetSSD_deploy.caffemodel"
+                 args_prototxt=f"{current_work_directory}/config/MobileNetSSD_deploy.prototxt.txt",
+                 args_model=f"{current_work_directory}/config/MobileNetSSD_deploy.caffemodel"
                  ):
         super().__init__('module_net')
         self.CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair",

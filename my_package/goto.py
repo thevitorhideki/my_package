@@ -1,6 +1,5 @@
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import ReliabilityPolicy, QoSProfile
 from geometry_msgs.msg import Twist, Point
 # Adicione aqui os imports necessários
 import numpy as np

@@ -4,27 +4,26 @@ from rclpy.node import Node
 from rclpy.qos import ReliabilityPolicy, QoSProfile
 from geometry_msgs.msg import Twist
 # Adicione aqui os imports necessários
-from sensor_msgs.msg import Image, CompressedImage
+from sensor_msgs.msg import Image
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 from cv_bridge import CvBridge
 
 
 class Seguidor(Node):
 
     def __init__(self):
-        super().__init__('seguidor_smooth_node')
+        super().__init__('seguidor_node')
 
         self.bridge = CvBridge()
-        self.yellow = {
+        self.cyellow = {
             'lower': (20, 50, 50),
             'upper': (30, 255, 255)
         }
         self.kernel = np.ones((10, 10), np.uint8)
         self.subcomp = self.create_subscription(
             Image,
-            'camera/image_raw',
+            '/camera/image_raw',
             self.image_callback,
             QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
         )
@@ -33,27 +32,28 @@ class Seguidor(Node):
 
         self.robot_state = 'segue'
         self.state_machine = {
-            'segue': self.segue
+            'segue': self.segue,
+            'stop': self.stop
         }
 
         self.threshold = 5
+        self.kp = 0.003
+        self.velx = 0.5
 
         # Inicialização de variáveis
         self.twist = Twist()
-        self.x = np.inf
-        self.kp = 0.005
+        self.cx = np.inf
 
         # Publishers
         self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel', 10)
 
     def image_callback(self, msg):
-        cv_image = self.bridge.imgmsg_to_cv2(
-            msg, "bgr8")  # if CompressedImage
+        cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")  # if CompressedImage
         h, w, _ = cv_image.shape
         self.w = w/2
         hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
 
-        mask = cv2.inRange(hsv, self.yellow['lower'], self.yellow['upper'])
+        mask = cv2.inRange(hsv, self.cyellow['lower'], self.cyellow['upper'])
         mask[:int(h/2), :] = 0
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, self.kernel)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, self.kernel)
@@ -66,26 +66,31 @@ class Seguidor(Node):
             cv2.drawContours(cv_image, contour, -1, [255, 0, 0], 3)
 
             M = cv2.moments(contour)
-            self.x = int(M["m10"] / M["m00"])
-            self.y = int(M["m01"] / M["m00"])
+            self.cx = int(M["m10"] / M["m00"])
+            self.cy = int(M["m01"] / M["m00"])
 
-            cv2.circle(cv_image, (self.x, self.y), 5, (0, 0, 255), -1)
-
-            cv2.imshow("cv_image", mask)
-            cv2.waitKey(1)
+            cv2.circle(cv_image, (self.cx, self.cy), 5, (0, 0, 255), -1)
         else:
             return -1
 
+        cv2.imshow("cv_image", mask)
+        cv2.waitKey(1)
+
+    def calc_erro(self):
+        self.erro = self.w - self.cx
+        self.rot = self.erro * self.kp
+        print('Erro Angular:', self.erro)
+
     def segue(self):
-        erro = self.w - self.x
-        print('Erro Angular:', erro)
+        if self.cx == np.inf:
+            self.twist.angular.z = -0.4
+        else:
+            self.calc_erro()
+            self.twist.linear.x = self.velx
+            self.twist.angular.z = self.rot
 
-        self.twist.linear.x = 0.5
-        self.twist.angular.z = erro * self.kp
-
-        if self.x == np.inf:
-            self.twist.linear.x = 0.0
-            self.twist.angular.z = -0.2
+    def stop(self):
+        self.twist = Twist()
 
     def control(self):
         self.twist = Twist()

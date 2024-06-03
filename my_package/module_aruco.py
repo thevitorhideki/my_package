@@ -10,12 +10,13 @@ class Aruco3d():
     def __init__(self):
         # Definindo a variavel ids para armazenar o Id do aruco detectado
         self.ids = None
+        current_work_directory = os.path.dirname(os.path.abspath(__file__))
 
         # Carregando os arquivos de calibracao da camera
         self.camera_matrix = np.loadtxt(
-            '/home/thevitorhideki/colcon_ws/src/my_package/my_package/config/cameraMatrix_realsense.txt', delimiter=',')
+            f'{current_work_directory}/config/cameraMatrix_realsense.txt', delimiter=',')
         self.camera_distortion = np.loadtxt(
-            '/home/thevitorhideki/colcon_ws/src/my_package/my_package/config/cameraDistortion_realsense.txt', delimiter=',')
+            f'{current_work_directory}/config/cameraDistortion_realsense.txt', delimiter=',')
 
     def detectaAruco(self, bgr):
         # Gera a mascara em escalas de Cinza apartir da copia da imagem em BGR

@@ -27,6 +27,7 @@ setup(
             "second_node = my_package.second_node:main",
             "test_odom = my_package.test_odom:main",
             "test_laser = my_package.test_laser:main",
+            "testa_tudo = my_package.testa_tudo:main"
         ],
     },
 )
